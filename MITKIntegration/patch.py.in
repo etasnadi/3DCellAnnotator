@@ -1,0 +1,59 @@
+import os
+from shutil import copyfile
+import sys
+import filecmp
+
+def copy_files_diff(file_list, src_pat, dst_pat):
+    f = open(file_list, "r")
+    _id = 1
+    for line in f:
+        line_strip = line.strip()
+
+        print("[{}]: {}".format(_id, line_strip))
+
+        s_pat = line_strip.replace("${PROJ_DIR}", src_pat)
+        d_pat = line_strip.replace("${PROJ_DIR}", dst_pat)
+        target_dir = os.path.dirname(d_pat)
+
+        print("mkdir {}".format(target_dir))
+        os.makedirs(target_dir, exist_ok=True)
+
+        if not os.path.isfile(s_pat):
+            print("({} can not found: skip)".format(s_pat))
+
+        if not os.path.isfile(d_pat) or not filecmp.cmp(s_pat, d_pat):
+            if os.path.isfile(d_pat):
+                print("(Overwrite)  ")
+            else:
+                print("(Create)     ")
+            print("cp {} {}".format(s_pat, d_pat))
+            copyfile(s_pat, d_pat)
+        else:
+            print("(No changes)     ")
+
+        _id = _id + 1
+    f.close()
+
+def create_patch_diff(file_list, var_proj_src_dir, patch_dir):
+    print("Creating patch with only cosidering the diffs from project: {}".format(var_proj_src_dir))
+    copy_files_diff(file_list, var_proj_src_dir, patch_dir)
+
+def print_help():
+    print("Usage: {} [create|apply] patch_dir source/dst-dir".format(sys.argv[0]))
+
+if len(sys.argv) != 2:
+    print_help()
+else:
+    proj_dir = "@MITK_PATH@"
+    patch_dir = "@PATCH_DIR@"
+    fname = patch_dir + "/../filelist.txt"
+
+    command = sys.argv[1]
+
+    if command == "apply":
+        create_patch_diff(fname, patch_dir, proj_dir)
+    elif command == "create":
+        create_patch_diff(fname, proj_dir, patch_dir)
+    else: 
+        print("Unrecognized command: {}".format(command))
+        print_help()

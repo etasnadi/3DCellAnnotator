@@ -1,0 +1,10 @@
+${PROJ_DIR}/Plugins/org.mitk.gui.qt.segmentation/src/internal/QmitkSegmentationView.cpp
+${PROJ_DIR}/Modules/Segmentation/Interactions/mitkAsTool.cpp
+${PROJ_DIR}/Modules/Segmentation/Interactions/mitkAsTool.h
+${PROJ_DIR}/Modules/Segmentation/Algorithms/mitkAsToolInterface.h
+${PROJ_DIR}/Modules/Segmentation/Resources/AS.png
+${PROJ_DIR}/Modules/Segmentation/files.cmake
+${PROJ_DIR}/Modules/Segmentation/CMakeLists.txt
+${PROJ_DIR}/Modules/SegmentationUI/Qmitk/QmitkAsToolGUI.cpp
+${PROJ_DIR}/Modules/SegmentationUI/Qmitk/QmitkAsToolGUI.h
+${PROJ_DIR}/Modules/SegmentationUI/files.cmake
