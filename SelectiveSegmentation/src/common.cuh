@@ -323,6 +323,8 @@ typedef struct {
 			theta *= a_conf.getIProperty("gui.eq.theta.enabled");
 		}
 
+		//BOOST_LOG_TRIVIAL(info) << "Parameters reveived: " << a_conf;
+
 		BOOST_LOG_TRIVIAL(info) << "Updated params: mu: " << mu << " lambda: " << lambda << " eta: " << eta << " theta: " << theta;
 	}
 }AlgParams;

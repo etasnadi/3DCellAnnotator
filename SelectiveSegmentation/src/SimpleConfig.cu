@@ -14,6 +14,62 @@
 
 using namespace std;
 
+#include <iostream>
+#include <sstream>
+#include <locale>
+
+/*
+
+Force the locale to use the C locale
+@author: kriston
+
+Example:
+std::cout << from_string<float>(to_string(5.2)) << std::endl;
+
+*/
+
+const std::locale clocale("C");
+
+template<typename CharType = char>
+std::basic_ostringstream<CharType> ostringstream_locale(const std::locale& pLocale = clocale)
+{
+	std::basic_ostringstream<CharType> oss;
+	oss.imbue(pLocale);
+	return oss;
+}
+
+template<typename InType>
+std::string _to_string(const InType& pValue, const std::locale& pLocale = clocale)
+{
+	std::basic_ostringstream<char> oss = ostringstream_locale<char>(pLocale);
+	oss << pValue;
+	return oss.str();
+}
+
+
+template<typename OutType, typename CharType = char>
+OutType from_string(const CharType* pStr, const std::locale& pLocale = clocale)
+{
+	if(pStr == nullptr) throw std::runtime_error("Empty input string");
+
+	std::basic_istringstream<CharType> iss(pStr);
+	iss.imbue(pLocale);
+	OutType value;
+	if(!(iss >> value)) throw std::invalid_argument("Cannot read value");
+	return value;
+}
+
+template<typename OutType, typename CharType = char>
+OutType from_string(const std::basic_string<CharType>& pStr, const std::locale& pLocale = clocale)
+{
+	std::basic_istringstream<CharType> iss(pStr);
+	iss.imbue(pLocale);
+	OutType value;
+	if(!(iss >> value)) throw std::invalid_argument("Cannot read value");
+	return value;
+}
+
+/*
 std::vector<std::string> split_string(const std::string& s, char delimiter){
    std::vector<std::string> tokens;
    std::string token;
@@ -56,7 +112,7 @@ bool replace(std::string& str, const std::string& from, const std::string& to) {
     str.replace(start_pos, from.length(), to);
     return true;
 }
-
+*/
 
 SimpleConfig::SimpleConfig(map<string, string>& defaultSettings){
 	settings = defaultSettings;
@@ -124,8 +180,8 @@ void SimpleConfig::setProperty(string propName, string propValue){
 }
 
 void SimpleConfig::setFProperty(string propName, float propValue){
-	string s_propValue = to_string(propValue);
-	replace(s_propValue, string(","), string(FLOAT_DELIM_S));
+	string s_propValue = _to_string(propValue);
+	std::cout << "Set " << s_propValue << "/" << propValue << std::endl;
 	settings[propName] = s_propValue;
 }
 
@@ -140,7 +196,7 @@ string SimpleConfig::getProperty(string propName){
 
 EXPORT_SHARED float SimpleConfig::getFProperty(string propName){
 	testProperty(propName);
-	float result = li_atof(settings[propName], FLOAT_DELIM);
+	float result = from_string<float>(settings[propName]);
 	BOOST_LOG_TRIVIAL(trace) << propName << "<-" <<  result;
 	return result;
 }
