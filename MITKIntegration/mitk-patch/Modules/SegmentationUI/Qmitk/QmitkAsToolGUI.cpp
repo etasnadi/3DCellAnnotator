@@ -141,8 +141,13 @@ CusSlider::~CusSlider(){
  * QmitkAsToolGui class
  */
 
+// Initial configuration.
 SimpleConfig QmitkAsToolGUI::configInit;
+
+// This instance will be used to communicate the updates to the algorithm.
 SimpleConfig QmitkAsToolGUI::configUpdates;
+
+// Saving the parameters to reuse if the tool is inactivated.
 map<std::string, double> QmitkAsToolGUI::savedW;
 int QmitkAsToolGUI::k;
 
@@ -160,7 +165,8 @@ QDoubleSpinBox* QmitkAsToolGUI::createSpinBoxParam(SimpleConfig& configInit, std
 		v = savedW[paramName];
 	}
 	inp->setValue(v);
-	configUpdates[paramName] = std::to_string(v * configInit.getFProperty(GUI_CONF_PREFIX + string(paramName) + GUI_CONF_POSTFIX_MUL));
+	string paramPropertyName = GUI_CONF_PREFIX + string(paramName) + GUI_CONF_POSTFIX_MUL;
+	configUpdates.setFProperty(paramName, v*configInit.getFProperty(paramPropertyName));
 	return inp;
 }
 
@@ -186,6 +192,11 @@ QmitkAsToolGUI::QmitkAsToolGUI(){
 	buildGUI();
 }
 
+/*
+
+Fills the configInit and configUpdates using the config file.
+
+*/
 void QmitkAsToolGUI::readConfig(){
 	static bool firstInit = true;
 	QmitkAsToolGUI::k++;
@@ -302,7 +313,7 @@ void QmitkAsToolGUI::buildGUI(){
 	QPushButton *manualAdjustVolBtn = new QPushButton("Adjust...");
 	connect(volumeTargInp, &QLineEdit::returnPressed, this, [=](){
 		float volVal = atof(volumeTargInp->text().toUtf8().constData());
-		configUpdates[VOLUME_PRIOR_PROPERTY] = volumeTargInp->text().toUtf8().constData();
+		configUpdates.setFProperty(VOLUME_PRIOR_PROPERTY, atof(volumeTargInp->text().toUtf8().constData()));
 		savedW[VOLUME_PRIOR_PROPERTY] = volVal;
 	});
 
@@ -319,14 +330,14 @@ void QmitkAsToolGUI::buildGUI(){
 	connect(volumeTargetCSldr->getSlider(), &QSlider::sliderMoved, this, [=](int val){
 		float realVal = volumeTargetCSldr->translateVal(val);
 		// Set the p value and the target input value
-		configUpdates[VOLUME_PRIOR_PROPERTY] = std::to_string(realVal);
+		configUpdates.setFProperty(VOLUME_PRIOR_PROPERTY, realVal);
 		volumeTargInp->setText(QString::number(realVal));
 	});
 	connect(manualAdjustVolBtn, &QPushButton::clicked, this, [=](){
 		float volVal = atof(actualVolumeVal->text().toUtf8().constData());
 		volumeTargetCSldr->updateIv(100, std::make_pair<float, float>(volVal*0.2f, volVal*1.8f));
 		
-		configUpdates[VOLUME_PRIOR_PROPERTY] = std::to_string(volVal);
+		configUpdates.setFProperty(VOLUME_PRIOR_PROPERTY, volVal);
 		volumeTargInp->setText(QString::number(volVal));
 	});
 	targetGbLay->addWidget(volumeTargetCSldr, 1, 0, 1, 5);
@@ -341,7 +352,7 @@ void QmitkAsToolGUI::buildGUI(){
 	QLineEdit *plasmaTargInp = new QLineEdit(QString::fromStdString(targetPlas));
 	connect(plasmaTargInp, &QLineEdit::returnPressed, this, [=](){
 		float plasVal = atof(plasmaTargInp->text().toUtf8().constData());
-		configUpdates[PLASMA_PRIOR_PROPERTY] = std::to_string(plasVal +  SPHERE_AMOEBA);
+		configUpdates.setFProperty(PLASMA_PRIOR_PROPERTY, plasVal +  SPHERE_AMOEBA);
 		savedW[PLASMA_PRIOR_PROPERTY] = plasVal;
 	});
 
@@ -360,14 +371,14 @@ void QmitkAsToolGUI::buildGUI(){
 	connect(plasmaTargetCSldr->getSlider(), &QSlider::sliderMoved, this, [=](int val){
 		float realVal = plasmaTargetCSldr->translateVal(val);
 		// Set the p value and the target input value
-		configUpdates[PLASMA_PRIOR_PROPERTY] = std::to_string(realVal + float(SPHERE_AMOEBA));
+		configUpdates.setFProperty(PLASMA_PRIOR_PROPERTY, realVal + float(SPHERE_AMOEBA));
 		plasmaTargInp->setText(QString::number(realVal));
 	});
 	connect(manualAdjustPlasmaBtn, &QPushButton::clicked, this, [=](){
 		float plasVal = atof(actualPlasmaVal->text().toUtf8().constData());
 		plasmaTargetCSldr->updateIv(100, std::make_pair<float, float>(plasVal*0.7f, plasVal*1.3f));
 
-		configUpdates[PLASMA_PRIOR_PROPERTY] = std::to_string(plasVal + float(SPHERE_AMOEBA));
+		configUpdates.setFProperty(PLASMA_PRIOR_PROPERTY, plasVal + float(SPHERE_AMOEBA));
 		plasmaTargInp->setText(QString::number(plasVal));
 	});
 
@@ -415,6 +426,12 @@ void QmitkAsToolGUI::buildGUI(){
 	paramsGb->setLayout(paramsGbLay);
 	layout->addWidget(paramsGb, 3, 0, 1, 2);
 
+	/*
+
+	Checkboxes to disable/enable the actual parameter.
+	configUpdates['gui.eq.lambda.enabled'] = ...	
+	
+	*/
 	connect(dataLabel, &QCheckBox::toggled, [=](bool state){
 		dataInp->setEnabled(state);
 		configUpdates[GUI_CONF_PREFIX + string(DATA_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_ENABLED] = std::to_string(int(state));
@@ -437,25 +454,29 @@ void QmitkAsToolGUI::buildGUI(){
 		configUpdates[GUI_CONF_PREFIX + string(PLASMA_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_ENABLED] = std::to_string(int(state));
 	});
 
-
+	// When clicked to the "Update weights", the actual inputs are savved to "savedW" and the "configUpdates" will be refreshed.
 	QPushButton *updateParamsBtn = new QPushButton("Update weights");
 	connect(updateParamsBtn, &QPushButton::clicked, [=](){
-		double volW = configInit.getFProperty(GUI_CONF_PREFIX + string(VOLUME_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_MUL) * 
-			atof(std::to_string(volumeInp->value()).c_str());
-		configUpdates[VOLUME_WEIGHT_PROPERTY] = std::to_string(volW);
+		double volScale = configInit.getFProperty(GUI_CONF_PREFIX + string(VOLUME_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_MUL);
+		double volInpVal = atof(std::to_string(volumeInp->value()).c_str());
+		double volW = volScale*volInpVal;
 
-		double spherW = atof(configInit[	GUI_CONF_PREFIX + string(PLASMA_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_MUL	].c_str()) * 
-			atof(std::to_string(plasmaInp->value()).c_str());
-		configUpdates[PLASMA_WEIGHT_PROPERTY] = std::to_string(spherW);
-		
+		double spherScale = configInit.getFProperty(GUI_CONF_PREFIX + string(PLASMA_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_MUL);
+		double spherInpVal = atof(std::to_string(plasmaInp->value()).c_str());
+		double spherW =  spherScale*spherInpVal;
 
-		double smoothW = atof(configInit[	GUI_CONF_PREFIX + string(SMOOTHNESS_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_MUL	].c_str()) * 
-			atof(std::to_string(smoothInp->value()).c_str());
-		configUpdates[SMOOTHNESS_WEIGHT_PROPERTY] = std::to_string(smoothW);
-		
-		double dataW = atof(configInit[	GUI_CONF_PREFIX + string(DATA_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_MUL	].c_str()) * 
-			atof(std::to_string(dataInp->value()).c_str());
-		configUpdates[DATA_WEIGHT_PROPERTY] = std::to_string(dataW);
+		double smoothScale = configInit.getFProperty(GUI_CONF_PREFIX + string(SMOOTHNESS_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_MUL);
+		double smoothInpVal = atof(std::to_string(smoothInp->value()).c_str());
+		double smoothW =  smoothScale*smoothInpVal;
+
+		double dataScale = configInit.getFProperty(GUI_CONF_PREFIX + string(DATA_WEIGHT_PROPERTY) + GUI_CONF_POSTFIX_MUL);
+		double dataInpVal = atof(std::to_string(dataInp->value()).c_str());
+		double dataW =  dataScale*dataInpVal;
+
+		configUpdates.setFProperty(VOLUME_WEIGHT_PROPERTY, volW);
+		configUpdates.setFProperty(PLASMA_WEIGHT_PROPERTY, spherW);
+		configUpdates.setFProperty(SMOOTHNESS_WEIGHT_PROPERTY, smoothW);
+		configUpdates.setFProperty(DATA_WEIGHT_PROPERTY, dataW);
 
 		savedW[VOLUME_WEIGHT_PROPERTY] = atof(std::to_string(volumeInp->value()).c_str());
 		savedW[PLASMA_WEIGHT_PROPERTY] = atof(std::to_string(plasmaInp->value()).c_str());
