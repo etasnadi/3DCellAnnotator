@@ -34,10 +34,12 @@ void SegContext::initLevelSetStructures(int gridPts){
 }
 
 void SegContext::initGridAuxStructures(int gridPts){
+	std::cout << ":Enter Initialize grid aux structures. N grid points: " << gridPts << std::endl;
 	closestObj = DevIntChk::make_uptr(gridPts);
 	auxField = DevFloatChk::make_uptr(gridPts);
 	normals = dchunk<float3>::make_uptr(gridPts);
 	K = dchunk<float>::make_uptr(gridPts);
+	std::cout << ":Leave Initialize grid aux structures" << std::endl;
 }
 
 void SegContext::updateGridStructures(int gridPts){
@@ -94,12 +96,21 @@ std::pair<int3, int3> getResizeParameters(std::pair<int3, int3> objExtrema, int3
 	return std::pair<int3, int3>(resize, translation);
 }
 
-Size3D SegContext::resizeOptimalIfNeeded(){
+Size3D SegContext::resizeOptimalIfNeeded(bool initialResize, int3 a_mins, int3 a_maxs){
+	int3 mins;
+	int3 maxs;
 
-	std::pair<int3, int3> ex = getFieldExtrema(*ls1, gridParams);
-
-	int3 mins = ex.first;
-	int3 maxs = ex.second;
+	if(initialResize){
+		BOOST_LOG_TRIVIAL(info) << "Using the resize parameters given in the arguments...";
+		mins = a_mins;
+		maxs = a_maxs;
+		BOOST_LOG_TRIVIAL(info) << "Min: " << mins <<  " max: " << maxs;
+	}else{
+		BOOST_LOG_TRIVIAL(info) << "Computing the resize parameters...";
+		std::pair<int3, int3> ex = getFieldExtrema(*ls1, gridParams);
+		mins = ex.first;
+		maxs = ex.second;
+	}
 
 	BOOST_LOG_TRIVIAL(info) << "Actual grid size: " << gridParams.gridSize << ", content extrema: " << mins << "; " << maxs;
 
@@ -260,7 +271,7 @@ void SegContext::evolve(){
 
 }
 
-SegContext::SegContext(HostFloatChk& image, Size3D aImageDims, int aBorderSize, AlgParams aAlgParams, GridParams& aGridProps, Obj aPrefObj, int strategy, int a_evolutionStrategy, HostUByteChk* mask){
+SegContext::SegContext(HostFloatChk& image, Size3D aImageDims, int aBorderSize, AlgParams aAlgParams, GridParams& aGridProps, Obj aPrefObj, int3 ex_min, int3 ex_max, int strategy, int a_evolutionStrategy, HostUByteChk* mask){
 	// Init GPU constant tables
 	Cubes::initGpuTables();
 
@@ -295,7 +306,7 @@ SegContext::SegContext(HostFloatChk& image, Size3D aImageDims, int aBorderSize, 
 	evolutionStrategy = a_evolutionStrategy;
 
 	gridToImageTranslation = make_int3(0, 0, 0);
-	resizeOptimalIfNeeded();
+	resizeOptimalIfNeeded(true, ex_min, ex_max);
 	initGridAuxStructures(gridParams.gridSize.vol());
 
 

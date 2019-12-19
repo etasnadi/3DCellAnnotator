@@ -98,7 +98,7 @@ public:
 	 * the data term will be computed and copied to the device,
 	 * the memory is alloceted for the structures.
 	 */
-	SegContext(HostFloatChk& image, Size3D aImageDims, int aBorderSize, AlgParams aAlgParams, GridParams& aGridProps, Obj aPrefObj, int strategy, int evolutionStrategy, HostUByteChk* mask = nullptr);
+	SegContext(HostFloatChk& image, Size3D aImageDims, int aBorderSize, AlgParams aAlgParams, GridParams& aGridProps, Obj aPrefObj, int3 ex_min, int3 ex_max, int strategy, int evolutionStrategy, HostUByteChk* mask = nullptr);
 
 	/**
 	 * The same as the previous contructor, but with an extra parameter initLevelSet
@@ -117,7 +117,7 @@ public:
 	 *
 	 * This function is called before every iteration.
 	 */
-	Size3D resizeOptimalIfNeeded();
+	Size3D resizeOptimalIfNeeded(bool initialResize, int3 a_mins = make_int3(0, 0, 0), int3 a_maxs = make_int3(0, 0, 0));
 
 	void iterate();
 	DevFloatChk& getLevelSet();

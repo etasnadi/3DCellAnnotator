@@ -19,6 +19,8 @@
 
 #define OUT_PATH_PROPERTY "data.out_path"
 
+size_t us;
+
 bool erro = false;
 
 // input
@@ -48,14 +50,16 @@ EXPORT_SHARED p_int3 getPInt3(int3 a){
 }
 
 void segStep(){
+    std::cout << ":Enter seg step" << std::endl;
     auto begin = boost::chrono::high_resolution_clock::now();
 
-    gridParams.gridSize = segContext->resizeOptimalIfNeeded();
+    gridParams.gridSize = segContext->resizeOptimalIfNeeded(false);
     segContext->iterate();
 
     auto end = boost::chrono::high_resolution_clock::now();
     auto dur = end - begin;
     auto ms = boost::chrono::duration_cast<boost::chrono::milliseconds>(dur).count();
+    std::cout << ":Leave seg step" << std::endl;
 }
 
 void apply_settings(SimpleConfig& conf){
@@ -122,6 +126,7 @@ void apply_settings(SimpleConfig& conf){
 }
 
 EXPORT_SHARED int segmentation_app_headless_init(const void* image, const void* segmentation, int labelId, int pixelSize, p_int3 p_imageSize, SimpleConfig a_conf){
+	std::cout << ":Enter headless init" << std::endl;
 	try{
 		conf = a_conf;
 		conf.generateConfig(cout);
@@ -139,15 +144,33 @@ EXPORT_SHARED int segmentation_app_headless_init(const void* image, const void* 
 
 		// Convert the mask given to short!
 		uint16_t *shSeg = (uint16_t*) segmentation;
+		int minx = p_imageSize.x, maxx = 0, miny = p_imageSize.y, maxy = 0, minz = p_imageSize.z, maxz = 0;
 		for(int v = 0; v < nPixelsImage; v++){
 			uint8_t val = (uint8_t) shSeg[v];
 			if(val == uint8_t(labelId)){
 				val = uint8_t(1);
+
+				int z = v / (p_imageSize.x * p_imageSize.y);
+				int y = (v - (z * p_imageSize.x * p_imageSize.y)) / (p_imageSize.x);
+				int x = (v - (y * p_imageSize.x) - (z * p_imageSize.x * p_imageSize.y)) / 1;
+
+				if(x < minx) minx = x;
+				if(y < miny) miny = y;
+				if(z < minz) minz = z;
+
+				if(x > maxx) maxx = x;
+				if(y > maxy) maxy = y;
+				if(z > maxz) maxz = z;
 			}else{
 				val = uint8_t(0);
 			}
 			(*h_inputInitialMask)[v] = val;
 		}
+
+		minx -= 1; miny -= 1; minz -= 1; maxx += 1; maxy += 1; maxz += 1;
+		std::cout << "Computed field extrema: " << minx << "," << miny << "," << minz << " - " << maxx << "," << maxy << "," << maxz << std::endl;
+		int3 mins = make_int3(minx, miny, minz);
+		int3 maxs = make_int3(maxx, maxy, maxz);
 
 		// Update the global variables with the updated config
 		apply_settings(conf);
@@ -159,11 +182,12 @@ EXPORT_SHARED int segmentation_app_headless_init(const void* image, const void* 
 		if(conf.isSetProperty("init.strategy")){
 			initStrategy = conf.getIProperty("init.strategy");
 		}
-		segContext = new SegContext(*processedImg, a_imageSize, borderSize, algParams, gridParams, prior, initStrategy, evolutionStrategy, h_inputInitialMask);
+		segContext = new SegContext(*processedImg, a_imageSize, borderSize, algParams, gridParams, prior, mins, maxs, initStrategy, evolutionStrategy, h_inputInitialMask);
 
 		Size3D actualGridSize = segContext->getGridParams().gridSize;
 		BOOST_LOG_TRIVIAL(info) << "Segmentation context created with grid size: " << actualGridSize;
 
+		std::cout << ":Leave headless init" << std::endl;
 		return 0;
 	}catch(string& e){
 		BOOST_LOG_TRIVIAL(fatal) << "Fatal error: " << e;
@@ -178,6 +202,7 @@ EXPORT_SHARED int segmentation_app_headless_init(const void* image, const void* 
 }
 
 EXPORT_SHARED p_ObjectStat segmentation_app_headless_step(SimpleConfig a_conf){
+	std::cout << ":Enter headless step" << std::endl;
 	p_ObjectStat objectStatReturn;
 
 	try{
@@ -195,6 +220,7 @@ EXPORT_SHARED p_ObjectStat segmentation_app_headless_step(SimpleConfig a_conf){
 		objectStatReturn.vol = segContext->getObjects()->vol;
 		objectStatReturn.surf = segContext->getObjects()->surf;
 
+		std::cout << ":Leave headless init" << std::endl;
 		return objectStatReturn;
 	}catch(string& e){
 		BOOST_LOG_TRIVIAL(fatal) << "Fatal error: " << e;
@@ -212,11 +238,14 @@ EXPORT_SHARED p_ObjectStat segmentation_app_headless_step(SimpleConfig a_conf){
  * A copy is made, and the caller is the new owner of the resource!
  */
 EXPORT_SHARED float* segmentation_app_grab_level_set(p_int3& gsize, p_int3& trans){
+	std::cout << ":Enter grab level set" << std::endl;
 	float *cop = new float[segContext->getLevelSetView()->getElements()];
 	hchunk_float::uptr_t ls = segContext->getLevelSetView();
 	ls->copyHostToHost(cop, ls->getPtr(), ls->getElements());
 	gsize = getPInt3(gridParams.gridSize.geti3());
 	trans = getPInt3(segContext->getGridToImageTranslation());
+
+	std::cout << ":Leave grab level set" << std::endl;
 	return cop;
 }
 

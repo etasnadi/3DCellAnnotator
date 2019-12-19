@@ -8,7 +8,7 @@
 #include "cudaErr.cuh"
 #include "types.cuh"
 #include "function.cuh"
-
+#include "cuda.h"
 #include <iostream>
 
 //#include "cudacomp.cuh"
@@ -19,7 +19,7 @@ extern size_t h_us;
 
 // Detailed log of the device chunk
 #ifndef _DC_LOG
-#define _DC_LOG 0
+#define _DC_LOG 1
 #endif
 
 #ifndef _HC_LOG
@@ -28,7 +28,7 @@ extern size_t h_us;
 
 // Only print the memory allocations and releases accounted by the device chunk
 #ifndef _DC_OP_LOG
-#define _DC_OP_LOG 0
+#define _DC_OP_LOG 1
 #endif
 
 #ifndef _HC_OP_LOG
@@ -36,7 +36,7 @@ extern size_t h_us;
 #endif
 // Request the memory statistics from the cuda runtime before and after every memory allocation/release
 #ifndef _DC_OP_LOG_CUDA
-#define _DC_OP_LOG_CUDA 0
+#define _DC_OP_LOG_CUDA 1
 #endif
 
 #if _DC_OP_LOG_CUDA == 1
