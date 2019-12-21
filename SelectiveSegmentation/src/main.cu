@@ -50,7 +50,7 @@ EXPORT_SHARED p_int3 getPInt3(int3 a){
 }
 
 void segStep(){
-    std::cout << ":Enter seg step" << std::endl;
+    BOOST_LOG_TRIVIAL(info) << ":Enter seg step";
     auto begin = boost::chrono::high_resolution_clock::now();
 
     gridParams.gridSize = segContext->resizeOptimalIfNeeded(false);
@@ -59,7 +59,7 @@ void segStep(){
     auto end = boost::chrono::high_resolution_clock::now();
     auto dur = end - begin;
     auto ms = boost::chrono::duration_cast<boost::chrono::milliseconds>(dur).count();
-    std::cout << ":Leave seg step" << std::endl;
+    BOOST_LOG_TRIVIAL(info) << ":Leave seg step";
 }
 
 void apply_settings(SimpleConfig& conf){
@@ -126,7 +126,7 @@ void apply_settings(SimpleConfig& conf){
 }
 
 EXPORT_SHARED int segmentation_app_headless_init(const void* image, const void* segmentation, int labelId, int pixelSize, p_int3 p_imageSize, SimpleConfig a_conf){
-	std::cout << ":Enter headless init" << std::endl;
+	BOOST_LOG_TRIVIAL(info) << ":Enter headless init";
 	try{
 		conf = a_conf;
 		conf.generateConfig(cout);
@@ -168,7 +168,7 @@ EXPORT_SHARED int segmentation_app_headless_init(const void* image, const void* 
 		}
 
 		minx -= 1; miny -= 1; minz -= 1; maxx += 1; maxy += 1; maxz += 1;
-		std::cout << "Computed field extrema: " << minx << "," << miny << "," << minz << " - " << maxx << "," << maxy << "," << maxz << std::endl;
+		BOOST_LOG_TRIVIAL(info) << "Computed field extrema: " << minx << "," << miny << "," << minz << " - " << maxx << "," << maxy << "," << maxz;
 		int3 mins = make_int3(minx, miny, minz);
 		int3 maxs = make_int3(maxx, maxy, maxz);
 
@@ -187,7 +187,7 @@ EXPORT_SHARED int segmentation_app_headless_init(const void* image, const void* 
 		Size3D actualGridSize = segContext->getGridParams().gridSize;
 		BOOST_LOG_TRIVIAL(info) << "Segmentation context created with grid size: " << actualGridSize;
 
-		std::cout << ":Leave headless init" << std::endl;
+		BOOST_LOG_TRIVIAL(info) << ":Leave headless init";
 		return 0;
 	}catch(string& e){
 		BOOST_LOG_TRIVIAL(fatal) << "Fatal error: " << e;
@@ -202,7 +202,7 @@ EXPORT_SHARED int segmentation_app_headless_init(const void* image, const void* 
 }
 
 EXPORT_SHARED p_ObjectStat segmentation_app_headless_step(SimpleConfig a_conf){
-	std::cout << ":Enter headless step" << std::endl;
+	BOOST_LOG_TRIVIAL(info) << ":Enter headless step";
 	p_ObjectStat objectStatReturn;
 
 	try{
@@ -220,7 +220,7 @@ EXPORT_SHARED p_ObjectStat segmentation_app_headless_step(SimpleConfig a_conf){
 		objectStatReturn.vol = segContext->getObjects()->vol;
 		objectStatReturn.surf = segContext->getObjects()->surf;
 
-		std::cout << ":Leave headless init" << std::endl;
+		BOOST_LOG_TRIVIAL(info) << ":Leave headless init";
 		return objectStatReturn;
 	}catch(string& e){
 		BOOST_LOG_TRIVIAL(fatal) << "Fatal error: " << e;
@@ -238,14 +238,14 @@ EXPORT_SHARED p_ObjectStat segmentation_app_headless_step(SimpleConfig a_conf){
  * A copy is made, and the caller is the new owner of the resource!
  */
 EXPORT_SHARED float* segmentation_app_grab_level_set(p_int3& gsize, p_int3& trans){
-	std::cout << ":Enter grab level set" << std::endl;
+	BOOST_LOG_TRIVIAL(info) << ":Enter grab level set";
 	float *cop = new float[segContext->getLevelSetView()->getElements()];
 	hchunk_float::uptr_t ls = segContext->getLevelSetView();
 	ls->copyHostToHost(cop, ls->getPtr(), ls->getElements());
 	gsize = getPInt3(gridParams.gridSize.geti3());
 	trans = getPInt3(segContext->getGridToImageTranslation());
 
-	std::cout << ":Leave grab level set" << std::endl;
+	BOOST_LOG_TRIVIAL(info) << ":Leave grab level set";
 	return cop;
 }
 
