@@ -70,7 +70,7 @@ private:
 	// Segmentation control
 	int getSelectedLabelId(mitk::Image* image);
 	void launchNextStep(SimpleConfig conf);
-	void startSegmentation();
+	int startSegmentation();
 	void stopSegmentation();
 
 	// Controls the segmentation status

@@ -24,6 +24,7 @@
 #include <qfuture.h>
 #include <QtConcurrent>
 #include <QCheckBox>
+#include <QMessageBox>
 
 #include "mitkSurface.h"
 #include "mitkSurfaceToImageFilter.h"
@@ -573,6 +574,7 @@ bool QmitkAsToolGUI::activateNextLabe(){
 
 void QmitkAsToolGUI::launchNextStep(SimpleConfig conf){
 	nIterationsElapsed++;
+	std::cout << "Iteration: " << nIterationsElapsed << std::endl;
 
 	if(autoJumpNext){
 		if(nIterationsElapsed > autoJumpLimit){
@@ -593,20 +595,41 @@ void QmitkAsToolGUI::launchNextStep(SimpleConfig conf){
 	}
 }
 
-void QmitkAsToolGUI::startSegmentation(){
+int QmitkAsToolGUI::startSegmentation(){
 		// Acquire the current segmentation: we treat this as the initial one!
 		mitk::DataNode::Pointer referenceDataNode = m_asTool->getToolManager()->GetReferenceData(0);
 		mitk::DataNode::Pointer segmentationNode = m_asTool->getToolManager()->GetWorkingData(0);
 
 		if(referenceDataNode.IsNull() || segmentationNode.IsNull()){
-			return;
+			return 1;
 		}
 
 		mitk::Image::Pointer refImage = dynamic_cast<mitk::Image *>(referenceDataNode->GetData());
 		showDataInfo(m_asTool->getToolManager());
 		mitk::Image::Pointer segImage = getSelectedInitializer(m_asTool->getToolManager());
-		//mitk::Image::Pointer segImage = dynamic_cast<mitk::Image *>(segmentationNode->GetData());
 
+		// Check if the seedpoint exists.
+		mitk::ImageReadAccessor readAccessSrc(segImage, segImage->GetVolumeData(0));
+		const uint16_t *cPointer = (const uint16_t*) readAccessSrc.GetData();
+
+		bool seedpointExists = false;
+		int vol = segImage->GetDimension(0) * segImage->GetDimension(1) * segImage->GetDimension(2);
+		for(int i = 0; i < vol; i++){
+			uint16_t colSrc = cPointer[i];
+			if(colSrc > 0){
+				seedpointExists = true;
+				break;
+			}			
+		}
+
+		if(!seedpointExists){
+			QMessageBox box;
+			box.setText("No initial object defined, please draw one using a drawing tool!");
+			box.exec();
+			return 1;
+		}
+
+		// Init the segmentation
 		if(initFromSphere->isChecked()){
 			configInit["init.strategy"] = "1";
 		}else{
@@ -617,6 +640,8 @@ void QmitkAsToolGUI::startSegmentation(){
 		nIterationsElapsed = 0;
 		activeSession = true;
 		stopSegButton->setEnabled(true);
+
+		return 0; // The segmentation successfully started.
 }
 
 void QmitkAsToolGUI::stopSegmentation(){
@@ -634,7 +659,10 @@ void QmitkAsToolGUI::OnStartButtonClicked(){
 
 	if(!activeSession){
 		currentWorkingLabelId = getSelectedLabelId(getSelectedInitializer(m_asTool->getToolManager()).GetPointer());
-		startSegmentation();
+		int startSuccess = startSegmentation();
+		if(startSuccess > 0){
+			return;
+		}
 	}
 
 	if(!segRunning){

@@ -17,8 +17,6 @@
 // external interface
 #include "selective.h"
 
-#define OUT_PATH_PROPERTY "data.out_path"
-
 size_t us;
 
 bool erro = false;
@@ -51,15 +49,17 @@ EXPORT_SHARED p_int3 getPInt3(int3 a){
 
 void segStep(){
     BOOST_LOG_TRIVIAL(info) << ":Enter seg step";
-    auto begin = boost::chrono::high_resolution_clock::now();
+    //auto begin = boost::chrono::high_resolution_clock::now();
 
     gridParams.gridSize = segContext->resizeOptimalIfNeeded(false);
     segContext->iterate();
 
-    auto end = boost::chrono::high_resolution_clock::now();
-    auto dur = end - begin;
-    auto ms = boost::chrono::duration_cast<boost::chrono::milliseconds>(dur).count();
-    BOOST_LOG_TRIVIAL(info) << ":Leave seg step";
+    //auto end = boost::chrono::high_resolution_clock::now();
+    //auto dur = end - begin;
+    //auto ms = boost::chrono::duration_cast<boost::chrono::milliseconds>(dur).count();
+    
+    //BOOST_LOG_TRIVIAL(info) << "Time elapsed: " << ms << " ms.";
+    //BOOST_LOG_TRIVIAL(info) << ":Leave seg step";
 }
 
 void apply_settings(SimpleConfig& conf){
@@ -196,6 +196,7 @@ EXPORT_SHARED int segmentation_app_headless_init(const void* image, const void* 
 		BOOST_LOG_TRIVIAL(fatal) << "Fatal error: " << e;
 		return 1;
 	}catch(...){
+		throw "Unknown exception.";
 		BOOST_LOG_TRIVIAL(fatal) << "Fatal error: unknown exception";
 		return 1;
 	}
@@ -227,6 +228,7 @@ EXPORT_SHARED p_ObjectStat segmentation_app_headless_step(SimpleConfig a_conf){
 	}catch(int e){
 		BOOST_LOG_TRIVIAL(fatal) << "Fatal error: " << e;
 	}catch(...){
+		throw "Unknown exception.";
 		BOOST_LOG_TRIVIAL(fatal) << "Fatal error: unknown exception";
 	}
 

@@ -95,7 +95,7 @@ p_ObjectStat mitk::AsTool::launchNextStepComputation(SimpleConfig conf){
 	return segmentation_app_headless_step(conf);
 }
 
-float* mitk::AsTool::getNextStepLevelSet(p_int3& gridSize, p_int3& translation){
+float* mitk::AsTool::getNextStepLevelSet(p_int3& gridSize, p_int3& translation){	
 	return segmentation_app_grab_level_set(gridSize, translation);
 }
 
