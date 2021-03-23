@@ -149,7 +149,9 @@ void checkImwriteError(bool success, string filename){
 void CVTiffStackReader::getSESize(string stack_path_stem, Size3D& imageDims){
 	string first_stack_element_path = get_stack_element_path(stack_path_stem, 1);
 
-	cv::Mat first_stack_element = cv::imread(first_stack_element_path, CV_LOAD_IMAGE_ANYDEPTH);
+	//cv::Mat first_stack_element = cv::imread(first_stack_element_path, cv::CV_LOAD_IMAGE_ANYDEPTH);
+	cv::Mat first_stack_element = cv::imread(first_stack_element_path, cv::IMREAD_ANYDEPTH);
+
 	checkImreadError(first_stack_element, first_stack_element_path);
 
 	if(first_stack_element.data == NULL){
